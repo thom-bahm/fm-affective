@@ -1,1 +1,1 @@
-# CLIP-emotion-test
+# Research on Foundation Models for Affective Computing
