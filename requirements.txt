@@ -1,0 +1,10 @@
+einops
+numpy==1.24.3
+torch
+torchvision
+pillow
+transformers
+accelerate>=0.26.0
+bitsandbytes
+tensorflow-cpu
+typing-extensions==4.8.0
