@@ -27,7 +27,6 @@ def read_video_pyav(container, indices):
 # Load the model in half-precision
 model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-LLaVA-7B-hf", torch_dtype=torch.float16, device_map="auto")
 processor = VideoLlavaProcessor.from_pretrained("LanguageBind/Video-LLaVA-7B-hf")
-
 # Load the video as an np.arrau, sampling uniformly 8 frames
 video_path = hf_hub_download(repo_id="raushan-testing-hf/videos-test", filename="sample_demo_1.mp4", repo_type="dataset")
 container = av.open(video_path)
