@@ -25,9 +25,10 @@ def read_video_pyav(container, indices):
     return np.stack([x.to_ndarray(format="rgb24") for x in frames])
 
 quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.float16,
+    # load_in_4bit=True,
+    load_in_8bit=True,
+    # bnb_4bit_quant_type="nf4",
+    # bnb_4bit_compute_dtype=torch.float16,
 )
 
 # Load the model in half-precision
