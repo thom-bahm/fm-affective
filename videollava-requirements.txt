@@ -1,0 +1,7 @@
+av
+torch
+torchvision
+numpy
+transformers
+accelerate>=0.26.0
+protobuf
