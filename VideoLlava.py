@@ -1,7 +1,7 @@
 import av
 import torch
 import numpy as np
-from transformers import VideoLlavaForConditionalGeneration, VideoLlavaProcessor
+from transformers import VideoLlavaForConditionalGeneration, BitsAndBytesConfig, VideoLlavaProcessor
 from huggingface_hub import hf_hub_download
 
 def read_video_pyav(container, indices):
@@ -24,8 +24,16 @@ def read_video_pyav(container, indices):
             frames.append(frame)
     return np.stack([x.to_ndarray(format="rgb24") for x in frames])
 
+quantization_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.float16,
+)
+
 # Load the model in half-precision
-model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-LLaVA-7B-hf", torch_dtype=torch.float16, device_map="auto")
+model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-LLaVA-7B-hf",
+                                                           quantization_config=quantization_config, 
+                                                           device_map="auto")
 processor = VideoLlavaProcessor.from_pretrained("LanguageBind/Video-LLaVA-7B-hf")
 # Load the video as an np.arrau, sampling uniformly 8 frames
 video_path = hf_hub_download(repo_id="raushan-testing-hf/videos-test", filename="sample_demo_1.mp4", repo_type="dataset")
@@ -39,4 +47,8 @@ prompt = "USER: <video>\nWhy is this funny? ASSISTANT:"
 inputs = processor(text=prompt, videos=video, return_tensors="pt")
 
 out = model.generate(**inputs, max_new_tokens=60)
-processor.batch_decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+decoded_out = processor.batch_decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+
+print(out)
+print(out.shape)
+print(decoded_out)
