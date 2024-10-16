@@ -27,7 +27,7 @@ def read_video_pyav(container, indices):
 
 quantization_config = BitsAndBytesConfig(
     load_in_4bit=True,
-    # load_in_8bit=True,
+    load_in_8bit=False,
     bnb_4bit_quant_type="nf4",
     bnb_4bit_compute_dtype=torch.float16,
 )
@@ -63,7 +63,7 @@ Describe the following face as one of the 10 emotion categories below, and expla
 8. None
 9. Uncertain
 ASSISTANT:"""
-inputs = processor(text=prompt, images=img_2, padding=True, return_tensors="pt")
+inputs = processor(text=prompt, images=[img_2], padding=True, return_tensors="pt")
 
 
 out = model.generate(**inputs, max_new_tokens=100)
