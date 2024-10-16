@@ -1,5 +1,5 @@
 import av
-#import torch
+import torch
 import numpy as np
 from transformers import VideoLlavaForConditionalGeneration, BitsAndBytesConfig, VideoLlavaProcessor
 from huggingface_hub import hf_hub_download
@@ -34,7 +34,7 @@ quantization_config = BitsAndBytesConfig(
 
 # Load the model in half-precision
 model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-LLaVA-7B-hf",
-                                                        #    quantization_config=quantization_config,
+                                                           quantization_config=quantization_config,
                                                            device_map="auto")
 processor = VideoLlavaProcessor.from_pretrained("LanguageBind/Video-LLaVA-7B-hf")
 # Load the video as an np.array, sampling uniformly 8 frames
