@@ -32,7 +32,7 @@ quantization_config = BitsAndBytesConfig(
     bnb_4bit_compute_dtype=torch.float16,
 )
 
-# Load the model in half-precision
+# Load the model in 4bit
 model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-LLaVA-7B-hf",
                                                            quantization_config=quantization_config,
                                                            device_map="auto")
@@ -51,7 +51,7 @@ img_1 = Image.open('./eval_set/0/2490.jpg')
 img_2 = Image.open('./eval_set/0/2498.jpg')
 print("image opened")
 prompt = """USER: <image>\n
-Describe the following face as one of the 10 emotion categories below, and explain your reasoning:
+Classify the provided face as one of the 10 emotion categories below. State your answer just as the number associated with the emotion.
 0. Neutral
 1. Happiness
 2. Sad
@@ -62,13 +62,15 @@ Describe the following face as one of the 10 emotion categories below, and expla
 7. Contempt
 8. None
 9. Uncertain
-ASSISTANT:"""
-inputs = processor(text=prompt, images=[img_2], padding=True, return_tensors="pt")
-
+ASSISTANT: """
+inputs = processor(text=[prompt] * 2, images=[img_1, img_2], padding=True, return_tensors="pt")
 
 out = model.generate(**inputs, max_new_tokens=100)
 decoded_out = processor.batch_decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+response = decoded_out[0][-1]
 
-print(out)
-print(out.shape)
+
+# print(out)
+# print(out.shape)
 print(decoded_out)
+print(response)
