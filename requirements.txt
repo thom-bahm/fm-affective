@@ -7,3 +7,4 @@ transformers
 accelerate>=0.26.0
 bitsandbytes
 typing-extensions==4.8.0
+flash-attn --no-build-isolation
