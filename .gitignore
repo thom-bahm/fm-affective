@@ -163,3 +163,7 @@ cython_debug/
 #.idea/
 
 /eval_set/*
+
+
+# MSP_Face files
+/MSP/*

@@ -8,7 +8,7 @@ from PIL import Image
 
 afnet_dir = "../../../affectnet/eval_set"
 
-def class_accuracy(exps : dict, img_folders : list) -> dict:
+def classify_affectnet(exps : dict, img_folders : list) -> dict:
     """
     Returns a dictionary containing the accuracy scores on each class (0,1,...,7)
     Args: 
@@ -88,14 +88,14 @@ quantization_config = BitsAndBytesConfig(
 )
 
 model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-LLaVA-7B-hf",
-                                                           quantization_config=quantization_config,
+                                                        #    quantization_config=quantization_config,
                                                            torch_dtype=torch.float16,
                                                            attn_implementation="flash_attention_2",
                                                            device_map="auto")
 processor = VideoLlavaProcessor.from_pretrained("LanguageBind/Video-LLaVA-7B-hf")
 
 prompt = """USER: <image>\n
-Classify the provided face as one of the 10 emotion categories below. State your answer just as the number associated with the emotion.
+Classify the provided face as one of the 10 emotion categories below. State your answer as the number associated with the emotion of the face.
 0. Neutral
 1. Happiness
 2. Sad
@@ -111,7 +111,7 @@ ASSISTANT: """
 
 img_folders = [f'{afnet_dir}/images', f'{afnet_dir}/other_images']
 
-results = class_accuracy(exps=exps, img_folders=img_folders)
+results = classify_affectnet(exps=exps, img_folders=img_folders)
 print(results)
 print(f"Average: {results['average']}")
 
