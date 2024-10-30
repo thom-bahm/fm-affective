@@ -3,11 +3,11 @@ import sys
 import numpy as np
 
 
-def segment_videos(video_path, segment_file, output_folder):
+def segment_video(video_path, segment_file, output_folder):
     """
-    This function will segment the videos downloaded from the MSP_Face corpus.
-    This is a slightly modified code from MSP_Face Github 'download_and_segment_videos.py' file
-    due to an issue with downloading the youtube videos.
+    This function will segment a video downloaded from the MSP_Face corpus.
+    This is a slightly modified code from MSP_Face Github 'download_and_segment_videos.py' file,
+    created due to an issue with downloading the youtube videos provided in the linksFile.
     """
     video_name = os.path.basename(video_path)
     file_segments_data = np.genfromtxt(segment_file, dtype=[('f8'), ('f8'), ('S50')], delimiter='\t')
