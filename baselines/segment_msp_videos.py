@@ -16,14 +16,12 @@ def segment_video(video_path, segment_file, output_folder):
         file_segments_data = np.atleast_1d(file_segments_data)
 
     gral_segments_path = os.path.join(output_folder, 'Segments')
-    if not os.path.isdir(gral_segments_path):
-        os.mkdir(gral_segments_path)
+    os.makedirs(gral_segments_path, exist_ok=True)
 
     for k in range(len(file_segments_data['f2'])):
         if video_name[:-4] in file_segments_data['f2'][k].decode('utf-8'):
             segments_path = os.path.join(gral_segments_path, file_segments_data['f2'][k].decode('utf-8')[:-4])
-            if not os.path.isdir(segments_path):
-                os.mkdir(segments_path)
+            os.makedirs(segments_path, exist_ok=True)
 
             segment_output = os.path.join(segments_path, file_segments_data['f2'][k].decode('utf-8'))
 

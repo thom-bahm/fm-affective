@@ -8,3 +8,5 @@ protobuf
 bitsandbytes
 pillow
 sentencepiece
+decord
+opencv-python
