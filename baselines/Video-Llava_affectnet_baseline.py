@@ -7,12 +7,21 @@ from PIL import Image
 
 afnet_dir = "../../../affectnet/val_set"
 
-def classify_affectnet(exps: dict, img_folder: str) -> dict:
+def generate(prompt : str, img):
+    inputs = processor(text=prompt, images=img, padding=True, return_tensors="pt")
+    inputs = {k: v.to('cuda:0') for k, v in inputs.items()}
+    out = model.generate(**inputs, max_new_tokens=100)
+    decoded_out = processor.batch_decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+    response = decoded_out[0][-1]
+    return response
+
+    
+def classify_affectnet(exps: dict, img_folder: str, prompt : str) -> dict:
     """
     Returns a dictionary containing the accuracy scores on each class (0,1,...,7)
     Args:
     exps (dict): A dictionary mapping image ids (int) to their classifications (int)
-    img_folder (str): Path to the images folder.
+    img_folder (str): Path to the images folder relative to the affectnet directory
     """
     results = {}
     total_corr = 0; total_imgs = 0
@@ -24,18 +33,16 @@ def classify_affectnet(exps: dict, img_folder: str) -> dict:
 
         if label is not None:
             img = Image.open(os.path.join(img_folder, img_path))
-            inputs = processor(text=[prompt], images=[img], padding=True, return_tensors="pt")
-            out = model.generate(**inputs, max_new_tokens=100)
-            decoded_out = processor.batch_decode(out, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-            response = decoded_out[0][-1]
-
-            print(f'IMG {img_id}:\nLabel: {label}, Response: {response}\nFull response: {decoded_out}')
+            # Generate response for image using given prompt
+            response = generate(prompt, img)
+            
+            print(f'IMG {img_id}:\nLabel: {label}, Response: {response}\n')
             if response in {'0','1','2','3','4','5','6','7','8','9'}:
                 if response == label:
                     total_corr += 1
                 total_imgs += 1
 
-        if total_imgs == 10:  # Limit processing to 1000 images
+        if total_imgs == 1000:  # Limit processing to 1000 images
             break
 
     # Calculate overall accuracy
@@ -73,12 +80,12 @@ model = VideoLlavaForConditionalGeneration.from_pretrained("LanguageBind/Video-L
                                                            quantization_config=quantization_config,
                                                            torch_dtype=torch.float16,
                                                            attn_implementation="flash_attention_2",
-                                                           device_map="auto")
+                                                           device_map="cuda:0")
 model.tie_weights()
 processor = VideoLlavaProcessor.from_pretrained("LanguageBind/Video-LLaVA-7B-hf")
-
+processor.tokenizer.padding_side = "left"
 prompt = """USER: <image>\n
-Classify the provided face as one of the 10 emotion categories below. State your answer as the number associated with the emotion of the face.
+Classify the face shown in the image as one of the 10 categories below. State your answer as the number associated with the emotion of the face.
 0. Neutral
 1. Happiness
 2. Sad
@@ -93,6 +100,6 @@ ASSISTANT: """
 
 img_folder = f'{afnet_dir}/images'
 
-results = classify_affectnet(exps=exps, img_folder=img_folder)
+results = classify_affectnet(exps=exps, img_folder=img_folder, prompt=prompt)
 print(results)
-print(f"Average: {results['average']}")
+print(f"Accuracy percentage: {results['average']}")
