@@ -130,9 +130,7 @@ def load_affectnet_annotations(annotations_dir: str) -> Dict[str, int]:
     """
     exps = {}
     i = 0
-    for filename in os.listdir(annotations_dir):
-        if i == 1000:  # Limit to 1000 entries for faster processing
-            break
+    for filename in os.listdir(annotations_dir): 
         match = re.match(r'^\d+', filename)
         if match:
             key = match.group()
@@ -150,27 +148,27 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
     as well as accuracy for each individual class.
     """
     model, processor = load_model(model_name)
-    results = {}
-
-    # totals
-    total_corr = 0
-    total_imgs = 0
-
-    # Initialize dicts to track accuracy per class
-    class_correct = {str(i): 0 for i in range(8)}
-    class_total = {str(i): 0 for i in range(8)}
-
-    # map labels to class names
+    
+    # Initialize the results dictionary to store counts
+    results = {
+        'total_correct': 0,
+        'total_images': 0,
+    }
+    
+    # Add entries for class-specific counts
     class_names = {
-        '0': 'Neutral', 
-        '1': 'Happiness', 
-        '2': 'Sad', 
-        '3': 'Surprise', 
-        '4': 'Fear', 
-        '5': 'Disgust', 
-        '6': 'Anger', 
+        '0': 'Neutral',
+        '1': 'Happiness',
+        '2': 'Sad',
+        '3': 'Surprise',
+        '4': 'Fear',
+        '5': 'Disgust',
+        '6': 'Anger',
         '7': 'Contempt'
     }
+    for label, name in class_names.items():
+        results[f'{name}_correct'] = 0
+        results[f'{name}_total'] = 0
 
     for img_path in os.listdir(img_folder):
         img_id = img_path.split('.')[0]
@@ -178,7 +176,7 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
 
         if label is not None:
             img = Image.open(os.path.join(img_folder, img_path))
-           
+            
             generate_map = {
                 "Qwen2VL": generate_qwen2vl,
                 "VideoLLaVA": generate_videollava,
@@ -188,29 +186,26 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
 
             print(f'IMG {img_id}:\nLabel: {label}, Response: {response}\n')
 
+            # Check if response is a valid label
             if response in class_names:
-                # Update total accuracy counts
+                # Update total counts
+                results['total_images'] += 1
                 if response == label:
-                    total_corr += 1
-                    class_correct[response] += 1
-                class_total[label] += 1
-                total_imgs += 1
+                    results['total_correct'] += 1
+                    results[f'{class_names[response]}_correct'] += 1
+                results[f'{class_names[label]}_total'] += 1
 
-            if total_imgs == 1000:  # Stop after evaluating 1000 images
-                break
 
-    # Calculate overall accuracy
-    results['total_accuracy'] = total_corr / total_imgs if total_imgs > 0 else 0
+    # Calculate total accuracy
+    results['total_accuracy'] = results['total_correct'] / results['total_images'] if results['total_images'] > 0 else 0
 
     # Calculate accuracy for each class
     for label, name in class_names.items():
-        if class_total[label] > 0:
-            results[f'{name}_accuracy'] = class_correct[label] / class_total[label]
-        else:
-            results[f'{name}_accuracy'] = 0.0
+        correct = results[f'{name}_correct']
+        total = results[f'{name}_total']
+        results[f'{name}_accuracy'] = correct / total if total > 0 else 0.0
 
     return results
-
 
 if __name__ == "__main__":
     # Parse command-line arguments
@@ -225,5 +220,6 @@ if __name__ == "__main__":
     # Load the annotations from .npy files
     exps = load_affectnet_annotations(args.annotations_dir)
 
-    classify_affectnet(args.model, exps, args.img_folder)
-
+    results = classify_affectnet(args.model, exps, args.img_folder)
+    print(results)
+    np.save('./affectnet_baseline_qwen2vl', results)
