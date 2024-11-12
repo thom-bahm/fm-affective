@@ -146,12 +146,31 @@ def load_affectnet_annotations(annotations_dir: str) -> Dict[str, int]:
 
 def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -> Dict[str, float]:
     """
-    Evaluates the model on AffectNet dataset.
+    Evaluates the model on the AffectNet dataset and computes total accuracy
+    as well as accuracy for each individual class.
     """
     model, processor = load_model(model_name)
     results = {}
+
+    # totals
     total_corr = 0
     total_imgs = 0
+
+    # Initialize dicts to track accuracy per class
+    class_correct = {str(i): 0 for i in range(8)}
+    class_total = {str(i): 0 for i in range(8)}
+
+    # map labels to class names
+    class_names = {
+        '0': 'Neutral', 
+        '1': 'Happiness', 
+        '2': 'Sad', 
+        '3': 'Surprise', 
+        '4': 'Fear', 
+        '5': 'Disgust', 
+        '6': 'Anger', 
+        '7': 'Contempt'
+    }
 
     for img_path in os.listdir(img_folder):
         img_id = img_path.split('.')[0]
@@ -168,18 +187,30 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
             response = generate_map[model_name](model, processor, img=img)
 
             print(f'IMG {img_id}:\nLabel: {label}, Response: {response}\n')
-            if response in {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}:
+
+            if response in class_names:
+                # Update total accuracy counts
                 if response == label:
                     total_corr += 1
+                    class_correct[response] += 1
+                class_total[label] += 1
                 total_imgs += 1
 
-            if total_imgs == 1000:
+            if total_imgs == 1000:  # Stop after evaluating 1000 images
                 break
 
-    accuracy = total_corr / total_imgs if total_imgs > 0 else 0
-    print(f"Accuracy on AffectNet dataset using {model_name}: {accuracy:.4f}")
-    results["accuracy"] = accuracy
+    # Calculate overall accuracy
+    results['total_accuracy'] = total_corr / total_imgs if total_imgs > 0 else 0
+
+    # Calculate accuracy for each class
+    for label, name in class_names.items():
+        if class_total[label] > 0:
+            results[f'{name}_accuracy'] = class_correct[label] / class_total[label]
+        else:
+            results[f'{name}_accuracy'] = 0.0
+
     return results
+
 
 if __name__ == "__main__":
     # Parse command-line arguments
