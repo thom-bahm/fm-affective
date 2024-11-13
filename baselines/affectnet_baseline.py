@@ -2,7 +2,6 @@ import os
 # Set the environment variable for cache
 # (must be done before importing transformers)
 os.environ["HF_HOME"] = "/media/data5/hf_cache"
-
 import re
 import argparse
 import numpy as np
@@ -11,6 +10,8 @@ from transformers import AutoProcessor, BitsAndBytesConfig
 from PIL import Image
 from typing import Dict
 from qwen_vl_utils import process_vision_info
+from datetime import datetime
+import utils.py
 
 # Quantization configuration for 4 bit
 quantization_config = BitsAndBytesConfig(
@@ -145,17 +146,17 @@ def load_affectnet_annotations(annotations_dir: str) -> Dict[str, int]:
 def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -> Dict[str, float]:
     """
     Evaluates the model on the AffectNet dataset and computes total accuracy
-    as well as accuracy for each individual class.
+    as well as accuracy for each individual class, and stores predictions for confusion matrix.
     """
     model, processor = load_model(model_name)
-    
+
     # Initialize the results dictionary to store counts
     results = {
         'total_correct': 0,
         'total_images': 0,
     }
-    
-    # Add entries for class-specific counts
+
+    # Define class names
     class_names = {
         '0': 'Neutral',
         '1': 'Happiness',
@@ -166,17 +167,25 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
         '6': 'Anger',
         '7': 'Contempt'
     }
+
+    # Initialize counters for each class
     for label, name in class_names.items():
         results[f'{name}_correct'] = 0
         results[f'{name}_total'] = 0
 
+    # Lists to store true and predicted labels for confusion matrix
+    true_labels = []
+    predicted_labels = []
+
+    # Iterate over all images in the folder
     for img_path in os.listdir(img_folder):
         img_id = img_path.split('.')[0]
         label = exps.get(img_id)
 
         if label is not None:
             img = Image.open(os.path.join(img_folder, img_path))
-            
+
+            # Select the appropriate model generator
             generate_map = {
                 "Qwen2VL": generate_qwen2vl,
                 "VideoLLaVA": generate_videollava,
@@ -188,13 +197,16 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
 
             # Check if response is a valid label
             if response in class_names:
-                # Update total counts
+                # Update counts for overall accuracy
                 results['total_images'] += 1
                 if response == label:
                     results['total_correct'] += 1
                     results[f'{class_names[response]}_correct'] += 1
                 results[f'{class_names[label]}_total'] += 1
 
+                # Store for confusion matrix
+                true_labels.append(class_names[label])
+                predicted_labels.append(class_names[response])
 
     # Calculate total accuracy
     results['total_accuracy'] = results['total_correct'] / results['total_images'] if results['total_images'] > 0 else 0
@@ -205,7 +217,12 @@ def classify_affectnet(model_name: str, exps: Dict[str, str], img_folder: str) -
         total = results[f'{name}_total']
         results[f'{name}_accuracy'] = correct / total if total > 0 else 0.0
 
+    # will save an .npy file of the confusion matrix
+    utils.create_confusion_matrix(true_labels, predicted_labels, class_names)
+    filename = f"affectnet_baseline_{model_name}_{datetime.now().strftime('%Y-%m-%d_%H')}.npy"
+    np.save(filename, np.array(results))
     return results
+
 
 if __name__ == "__main__":
     # Parse command-line arguments
@@ -222,4 +239,4 @@ if __name__ == "__main__":
 
     results = classify_affectnet(args.model, exps, args.img_folder)
     print(results)
-    np.save('./affectnet_baseline_qwen2vl', results)
+
