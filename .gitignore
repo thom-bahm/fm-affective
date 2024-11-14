@@ -167,3 +167,5 @@ cython_debug/
 
 # MSP_Face files
 /MSP/*
+
+*.swp
