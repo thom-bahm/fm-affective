@@ -5,7 +5,7 @@ os.environ["HF_HOME"] = "/media/data5/hf_cache"
 import json
 import torch
 from torchvision import io
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from transformers import Qwen2VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -30,9 +30,22 @@ EMOTION_MAP = {
     "C": "Contempt"
 }
 
+# Quantization configuration for 4 bit
+quantization_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    load_in_8bit=False,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.float16,
+)
+
 # Load model and processor
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = Qwen2VLForConditionalGeneration.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", torch_dtype="auto", device_map="cuda")
+model = Qwen2VLForConditionalGeneration.from_pretrained(
+        "Qwen/Qwen2-VL-7B-Instruct", 
+        torch_dtype=torch.float16, 
+        quantization_config=quantization_config,
+        device_map="cuda")
+
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct")
 
 def load_labels(labels_file: str) -> Dict[str, str]:
@@ -94,7 +107,9 @@ def run_inference_on_video(video_path: str) -> Optional[str]:
 
     # Generate output
     try:
-        output_ids = model.generate(**inputs, max_new_tokens=128)
+        with torch.no_grad():
+            output_ids = model.module.generate(**inputs, max_new_tokens=128) if isinstance(model, torch.nn.DataParallel) else model.generate(**inputs, max_new_tokens=128)
+ 
         generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, output_ids)]
         output_text = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
         if output_text:
