@@ -43,7 +43,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = Qwen2VLForConditionalGeneration.from_pretrained(
         "Qwen/Qwen2-VL-7B-Instruct", 
         torch_dtype=torch.float16, 
-        quantization_config=quantization_config,
+        # quantization_config=quantization_config,
         device_map="cuda")
 
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct")
